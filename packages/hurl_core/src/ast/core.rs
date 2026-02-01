@@ -21,7 +21,7 @@ use crate::types::{SourceString, ToSource};
 
 use super::option::EntryOption;
 use super::primitive::{
-    Bytes, KeyValue, LineTerminator, Placeholder, SourceInfo, Template, Whitespace, I64,
+    Bytes, KeyValue, LineTerminator, Number, Placeholder, SourceInfo, Template, Whitespace, I64,
 };
 use super::section::{Assert, Capture, Cookie, MultipartParam, RegexValue, Section, SectionValue};
 
@@ -274,6 +274,10 @@ pub struct Filter {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FilterValue {
+    Add {
+        space0: Whitespace,
+        value: NumberValue,
+    },
     Base64Decode,
     Base64Encode,
     Base64UrlSafeDecode,
@@ -352,6 +356,7 @@ impl FilterValue {
     /// Returns the Hurl identifier for this filter type.
     pub fn identifier(&self) -> &'static str {
         match self {
+            FilterValue::Add { .. } => "add",
             FilterValue::Base64Decode => "base64Decode",
             FilterValue::Base64Encode => "base64Encode",
             FilterValue::Base64UrlSafeDecode => "base64UrlSafeDecode",
@@ -399,6 +404,21 @@ impl fmt::Display for IntegerValue {
         match self {
             IntegerValue::Literal(v) => write!(f, "{v}"),
             IntegerValue::Placeholder(v) => write!(f, "{v}"),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum NumberValue {
+    Literal(Number),
+    Placeholder(Placeholder),
+}
+
+impl fmt::Display for NumberValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            NumberValue::Literal(v) => write!(f, "{v}"),
+            NumberValue::Placeholder(v) => write!(f, "{v}"),
         }
     }
 }

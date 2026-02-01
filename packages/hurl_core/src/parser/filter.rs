@@ -15,9 +15,9 @@
  * limitations under the License.
  *
  */
-use crate::ast::{Filter, FilterValue, IntegerValue, SourceInfo, Whitespace};
+use crate::ast::{Filter, FilterValue, IntegerValue, NumberValue, SourceInfo, Whitespace};
 use crate::combinator::{choice, ParseError as ParseErrorTrait};
-use crate::parser::number::integer;
+use crate::parser::number::{integer, number};
 use crate::parser::primitives::{one_or_more_spaces, try_literal, zero_or_more_spaces};
 use crate::parser::query::regex_value;
 use crate::parser::string::quoted_template;
@@ -53,6 +53,7 @@ pub fn filter(reader: &mut Reader) -> ParseResult<Filter> {
     let start = reader.cursor();
     let value = choice(
         &[
+            add_filter,
             base64_decode_filter,
             base64_encode_filter,
             base64_url_safe_decode_filter,
@@ -104,6 +105,30 @@ pub fn filter(reader: &mut Reader) -> ParseResult<Filter> {
         end: end.pos,
     };
     Ok(Filter { source_info, value })
+}
+
+fn add_filter(reader: &mut Reader) -> ParseResult<FilterValue> {
+    try_literal("add", reader)?;
+    let space0 = one_or_more_spaces(reader)?;
+    let value = number_value(reader)?;
+    Ok(FilterValue::Add { space0, value })
+}
+
+fn number_value(reader: &mut Reader) -> ParseResult<NumberValue> {
+    let start = reader.cursor();
+    match number(reader) {
+        Ok(v) => Ok(NumberValue::Literal(v)),
+        Err(_) => {
+            reader.seek(start);
+            let placeholder = placeholder::parse(reader).map_err(|e| {
+                let kind = ParseErrorKind::Expecting {
+                    value: "number".to_string(),
+                };
+                ParseError::new(e.pos, false, kind)
+            })?;
+            Ok(NumberValue::Placeholder(placeholder))
+        }
+    }
 }
 
 fn base64_decode_filter(reader: &mut Reader) -> ParseResult<FilterValue> {

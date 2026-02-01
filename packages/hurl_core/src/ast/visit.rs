@@ -24,10 +24,10 @@ use crate::ast::{
     Assert, Base64, Body, BooleanOption, Bytes, Capture, Comment, Cookie, CookiePath, CountOption,
     DurationOption, Entry, EntryOption, File, FilenameParam, FilenameValue, Filter, FilterValue,
     Hex, HurlFile, IntegerValue, JsonValue, KeyValue, LineTerminator, Method, MultilineString,
-    MultipartParam, NaturalOption, Number, OptionKind, Placeholder, Predicate, PredicateFuncValue,
-    PredicateValue, Query, QueryValue, Regex, RegexValue, Request, Response, Section, SectionValue,
-    StatusValue, Template, VariableDefinition, VariableValue, VerbosityOption, VersionValue,
-    Whitespace, U64,
+    MultipartParam, NaturalOption, Number, NumberValue, OptionKind, Placeholder, Predicate,
+    PredicateFuncValue, PredicateValue, Query, QueryValue, Regex, RegexValue, Request, Response,
+    Section, SectionValue, StatusValue, Template, VariableDefinition, VariableValue,
+    VerbosityOption, VersionValue, Whitespace, U64,
 };
 use crate::types::{Count, Duration, DurationUnit, SourceString, ToSource};
 
@@ -133,6 +133,10 @@ pub trait Visitor: Sized {
     }
 
     fn visit_i64(&mut self, n: i64) {}
+
+    fn visit_number_value(&mut self, n: &NumberValue) {
+        walk_number_value(self, n);
+    }
 
     fn visit_json_body(&mut self, json: &JsonValue) {}
 
@@ -417,6 +421,10 @@ pub fn walk_file<V: Visitor>(visitor: &mut V, file: &File) {
 pub fn walk_filter<V: Visitor>(visitor: &mut V, filter: &Filter) {
     visitor.visit_filter_kind(&filter.value);
     match &filter.value {
+        FilterValue::Add { space0, value } => {
+            visitor.visit_whitespace(space0);
+            visitor.visit_number_value(value);
+        }
         FilterValue::Base64Decode => {}
         FilterValue::Base64Encode => {}
         FilterValue::Base64UrlSafeDecode => {}
@@ -556,6 +564,13 @@ pub fn walk_integer_value<V: Visitor>(visitor: &mut V, n: &IntegerValue) {
     match n {
         IntegerValue::Literal(value) => visitor.visit_i64(value.as_i64()),
         IntegerValue::Placeholder(value) => visitor.visit_placeholder(value),
+    }
+}
+
+pub fn walk_number_value<V: Visitor>(visitor: &mut V, n: &NumberValue) {
+    match n {
+        NumberValue::Literal(value) => visitor.visit_number(value),
+        NumberValue::Placeholder(value) => visitor.visit_placeholder(value),
     }
 }
 

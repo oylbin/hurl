@@ -17,6 +17,7 @@
  */
 use hurl_core::ast::{Filter, FilterValue};
 
+use crate::runner::filter::add::eval_add;
 use crate::runner::filter::base64_decode::eval_base64_decode;
 use crate::runner::filter::base64_encode::eval_base64_encode;
 use crate::runner::filter::base64_url_safe_decode::eval_base64_url_safe_decode;
@@ -82,6 +83,9 @@ pub fn eval_filter(
 ) -> Result<Option<Value>, RunnerError> {
     let source_info = filter.source_info;
     match &filter.value {
+        FilterValue::Add { value: addend, .. } => {
+            eval_add(value, addend, variables, source_info, in_assert)
+        }
         FilterValue::Base64Decode => eval_base64_decode(value, source_info, in_assert),
         FilterValue::Base64Encode => eval_base64_encode(value, source_info, in_assert),
         FilterValue::Base64UrlSafeDecode => {

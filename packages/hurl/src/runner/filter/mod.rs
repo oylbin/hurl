@@ -20,6 +20,7 @@ pub use eval::eval_filters;
 pub use jsonpath::eval_jsonpath_json;
 pub use xpath::eval_xpath_doc;
 
+mod add;
 mod base64_decode;
 mod base64_encode;
 mod base64_url_safe_decode;

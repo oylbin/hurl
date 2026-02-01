@@ -19,10 +19,10 @@ use hurl_core::ast::{
     Assert, Base64, Body, BooleanOption, Bytes, Capture, CertificateAttributeName, Comment, Cookie,
     CookiePath, CountOption, DurationOption, Entry, EntryOption, File, FilenameParam,
     FilenameValue, FilterValue, Hex, HurlFile, IntegerValue, JsonValue, KeyValue, LineTerminator,
-    Method, MultilineString, MultipartParam, NaturalOption, Number, OptionKind, Placeholder,
-    Predicate, PredicateFuncValue, PredicateValue, Query, QueryValue, Regex, RegexValue, Request,
-    Response, Section, SectionValue, StatusValue, Template, VariableDefinition, VariableValue,
-    VerbosityOption, VersionValue, I64, U64,
+    Method, MultilineString, MultipartParam, NaturalOption, Number, NumberValue, OptionKind,
+    Placeholder, Predicate, PredicateFuncValue, PredicateValue, Query, QueryValue, Regex,
+    RegexValue, Request, Response, Section, SectionValue, StatusValue, Template,
+    VariableDefinition, VariableValue, VerbosityOption, VersionValue, I64, U64,
 };
 use hurl_core::types::{Count, Duration, DurationUnit, ToSource};
 
@@ -249,6 +249,10 @@ impl Lint for FilterValue {
         let mut s = String::new();
         s.push_str(self.identifier());
         match self {
+            FilterValue::Add { value, .. } => {
+                s.push(' ');
+                s.push_str(&value.lint());
+            }
             FilterValue::Decode { encoding, .. } => {
                 s.push(' ');
                 s.push_str(&encoding.lint());
@@ -358,6 +362,15 @@ impl Lint for IntegerValue {
         match self {
             IntegerValue::Literal(value) => value.lint(),
             IntegerValue::Placeholder(value) => value.lint(),
+        }
+    }
+}
+
+impl Lint for NumberValue {
+    fn lint(&self) -> String {
+        match self {
+            NumberValue::Literal(value) => value.lint(),
+            NumberValue::Placeholder(value) => value.lint(),
         }
     }
 }
