@@ -174,15 +174,33 @@ impl From<IpResolve> for http::IpResolve {
     }
 }
 
+/// Extended features added in this fork.
+/// Update this list when adding new custom features.
+const EXTENDED_FEATURES: &[&str] = &[
+    "add", // Arithmetic operations filter
+];
+
+/// Fork repository URL
+const FORK_REPO_URL: &str = "https://github.com/oylbin/hurl";
+
+/// Fork name identifier
+const FORK_NAME: &str = "hurl-extended";
+
 fn get_version() -> String {
     let libcurl_version = http::libcurl_version_info();
     let pkg_version = env!("CARGO_PKG_VERSION");
+    let git_hash = env!("HURL_BUILD_GIT_HASH");
+    let extended = EXTENDED_FEATURES.join(" ");
+
     format!(
-        "{} ({}) {}\nFeatures (libcurl):  {}\nFeatures (built-in): brotli",
-        pkg_version,
-        libcurl_version.host,
-        libcurl_version.libraries.join(" "),
-        libcurl_version.features.join(" ")
+        "{pkg_version} ({host}) {libs}\n\
+         Fork: {FORK_NAME} ({git_hash}) {FORK_REPO_URL}\n\
+         Features (libcurl):  {libcurl_features}\n\
+         Features (built-in): brotli\n\
+         Features (extended): {extended}",
+        host = libcurl_version.host,
+        libs = libcurl_version.libraries.join(" "),
+        libcurl_features = libcurl_version.features.join(" "),
     )
 }
 

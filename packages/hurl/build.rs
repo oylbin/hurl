@@ -17,6 +17,7 @@
  */
 
 use std::path::Path;
+use std::process::Command;
 
 use cc::Build;
 #[cfg(windows)]
@@ -32,6 +33,20 @@ fn set_icon() {
 #[cfg(unix)]
 fn set_icon() {}
 
+/// Gets the short Git commit hash at build time.
+/// Returns "unknown" if git is not available or not in a git repository.
+fn get_git_hash() -> String {
+    Command::new("git")
+        .args(["rev-parse", "--short", "HEAD"])
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .and_then(|o| String::from_utf8(o.stdout).ok())
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "unknown".to_string())
+}
+
 fn main() {
     let project_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let native_src = project_root.join("native");
@@ -40,4 +55,11 @@ fn main() {
         .file(native_src.join("libxml.c"))
         .flag_if_supported("-Wno-unused-parameter") // unused parameter in silent callback
         .compile("mylib");
+
+    // Set git hash as environment variable for version info
+    let git_hash = get_git_hash();
+    println!("cargo:rustc-env=HURL_BUILD_GIT_HASH={git_hash}");
+
+    // Only rerun if git HEAD changes (new commits)
+    println!("cargo:rerun-if-changed=.git/HEAD");
 }
