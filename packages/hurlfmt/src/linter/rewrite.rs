@@ -311,6 +311,14 @@ impl Lint for FilterValue {
                 s.push(' ');
                 s.push_str(&expr.lint());
             }
+            FilterValue::JsFilter { name, args, .. } => {
+                s.push(' ');
+                s.push_str(&name.lint());
+                for (_, arg) in args {
+                    s.push(' ');
+                    s.push_str(&arg.lint());
+                }
+            }
             FilterValue::Base64Decode
             | FilterValue::Base64Encode
             | FilterValue::Base64UrlSafeDecode

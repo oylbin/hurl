@@ -172,7 +172,7 @@ pub fn run(
     let captures = match &entry.response {
         None => vec![],
         Some(response_spec) => {
-            match response::eval_captures(response_spec, &responses, &mut cache, variables) {
+            match response::eval_captures(response_spec, &responses, &mut cache, variables, &runner_options.jsfilter_path) {
                 Ok(captures) => captures,
                 Err(e) => {
                     return EntryResult {
@@ -208,6 +208,7 @@ pub fn run(
                 &responses,
                 &mut cache,
                 context_dir,
+                &runner_options.jsfilter_path,
             );
             asserts.append(&mut other_asserts);
         }

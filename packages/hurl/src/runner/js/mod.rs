@@ -16,41 +16,18 @@
  *
  */
 
-pub use eval::eval_filters_with_js;
-pub use jsonpath::eval_jsonpath_json;
-pub use xpath::eval_xpath_doc;
+//! JavaScript runtime support for custom filters.
+//!
+//! This module provides the ability to extend Hurl's filter capabilities
+//! using JavaScript code loaded via the `--jsfilter` CLI option.
 
-mod add;
-mod base64_decode;
-mod base64_encode;
-mod base64_url_safe_decode;
-mod base64_url_safe_encode;
-mod count;
-mod days_after_now;
-mod days_before_now;
-mod decode;
-mod eval;
-mod first;
-mod format;
-mod html_escape;
-mod html_unescape;
-mod jsonpath;
-mod jsfilter;
-mod last;
-mod location;
-mod nth;
-mod regex;
-mod replace;
-mod replace_regex;
-mod split;
-mod to_date;
-mod to_float;
-mod to_hex;
-mod to_int;
-mod to_string;
-mod url_decode;
-mod url_encode;
-mod url_query_param;
-mod utf8_decode;
-mod utf8_encode;
-mod xpath;
+mod client;
+mod convert;
+mod error;
+mod response;
+mod runtime;
+
+pub use client::JsClient;
+pub use error::JsError;
+pub use response::JsResponse;
+pub use runtime::JsRuntime;

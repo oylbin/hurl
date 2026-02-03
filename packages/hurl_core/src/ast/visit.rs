@@ -451,6 +451,14 @@ pub fn walk_filter<V: Visitor>(visitor: &mut V, filter: &Filter) {
             visitor.visit_whitespace(space0);
             visitor.visit_template(expr);
         }
+        FilterValue::JsFilter { space0, name, args } => {
+            visitor.visit_whitespace(space0);
+            visitor.visit_template(name);
+            for (ws, arg) in args {
+                visitor.visit_whitespace(ws);
+                visitor.visit_template(arg);
+            }
+        }
         FilterValue::Last => {}
         FilterValue::Location => {}
         FilterValue::Nth { space0, n } => {

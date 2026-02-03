@@ -77,6 +77,7 @@ pub struct CliOptions {
     pub insecure: bool,
     pub ip_resolve: Option<IpResolve>,
     pub jobs: Option<usize>,
+    pub jsfilter: Option<PathBuf>,
     pub json_report_dir: Option<PathBuf>,
     pub junit_file: Option<PathBuf>,
     pub limit_rate: Option<BytesPerSec>,
@@ -275,6 +276,7 @@ pub fn parse(context: &RunContext) -> Result<CliOptions, CliOptionsError> {
         .arg(commands::from_entry())
         .arg(commands::ignore_asserts())
         .arg(commands::jobs())
+        .arg(commands::jsfilter())
         .arg(commands::parallel())
         .arg(commands::repeat())
         .arg(commands::retry())
@@ -372,6 +374,7 @@ fn parse_matches(
     let insecure = matches::insecure(arg_matches, default_options.insecure);
     let ip_resolve = matches::ip_resolve(arg_matches, default_options.ip_resolve);
     let jobs = matches::jobs(arg_matches, default_options.jobs);
+    let jsfilter = matches::jsfilter(arg_matches, default_options.jsfilter)?;
     let json_report_dir = matches::json_report_dir(arg_matches, default_options.json_report_dir)?;
     let junit_file = matches::junit_file(arg_matches, default_options.junit_file);
     let limit_rate = matches::limit_rate(arg_matches, default_options.limit_rate);
@@ -453,6 +456,7 @@ fn parse_matches(
         insecure,
         ip_resolve,
         json_report_dir,
+        jsfilter,
         junit_file,
         limit_rate,
         max_filesize,
@@ -533,6 +537,7 @@ impl Default for CliOptions {
             ip_resolve: None,
             jobs: None,
             json_report_dir: None,
+            jsfilter: None,
             junit_file: None,
             limit_rate: None,
             max_filesize: None,
@@ -634,7 +639,8 @@ impl CliOptions {
         let user = self.user.clone();
         let user_agent = self.user_agent.clone();
 
-        RunnerOptionsBuilder::new()
+        let mut builder = RunnerOptionsBuilder::new();
+        builder
             .aws_sigv4(aws_sigv4)
             .cacert_file(cacert_file)
             .client_cert_file(client_cert_file)
@@ -678,8 +684,12 @@ impl CliOptions {
             .unix_socket(unix_socket)
             .use_cookie_store(use_cookie_store)
             .user(user)
-            .user_agent(user_agent)
-            .build()
+            .user_agent(user_agent);
+
+        // Set JavaScript filter file path if specified
+        builder.jsfilter_path(self.jsfilter.clone());
+
+        builder.build()
     }
 
     /// Converts this instance of [`ClipOptions`] to an instance of [`LoggerOptions`]

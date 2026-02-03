@@ -15,6 +15,7 @@
  * limitations under the License.
  *
  */
+use std::path::PathBuf;
 use std::time::Duration;
 
 use hurl_core::types::{BytesPerSec, Count};
@@ -47,6 +48,7 @@ pub struct RunnerOptionsBuilder {
     ignore_asserts: bool,
     insecure: bool,
     ip_resolve: IpResolve,
+    jsfilter_path: Option<PathBuf>,
     max_filesize: Option<u64>,
     max_recv_speed: Option<BytesPerSec>,
     max_redirect: Count,
@@ -99,6 +101,7 @@ impl Default for RunnerOptionsBuilder {
             ignore_asserts: false,
             insecure: false,
             ip_resolve: IpResolve::default(),
+            jsfilter_path: None,
             max_filesize: None,
             max_recv_speed: None,
             max_redirect: Count::Finite(50),
@@ -284,6 +287,12 @@ impl RunnerOptionsBuilder {
     /// Set IP version.
     pub fn ip_resolve(&mut self, ip_resolve: IpResolve) -> &mut Self {
         self.ip_resolve = ip_resolve;
+        self
+    }
+
+    /// Sets the JavaScript filter file path for custom filters.
+    pub fn jsfilter_path(&mut self, path: Option<PathBuf>) -> &mut Self {
+        self.jsfilter_path = path;
         self
     }
 
@@ -479,6 +488,7 @@ impl RunnerOptionsBuilder {
             ignore_asserts: self.ignore_asserts,
             insecure: self.insecure,
             ip_resolve: self.ip_resolve,
+            jsfilter_path: self.jsfilter_path.clone(),
             max_filesize: self.max_filesize,
             max_recv_speed: self.max_recv_speed,
             max_redirect: self.max_redirect,
@@ -556,8 +566,10 @@ pub struct RunnerOptions {
     pub(crate) ignore_asserts: bool,
     /// Set IP version.
     pub(crate) ip_resolve: IpResolve,
-    /// Allows Hurl to perform “insecure” SSL connections and transfers.
+    /// Allows Hurl to perform "insecure" SSL connections and transfers.
     pub(crate) insecure: bool,
+    /// JavaScript filter file path for custom filters.
+    pub(crate) jsfilter_path: Option<PathBuf>,
     /// Set the file size limit.
     pub(crate) max_filesize: Option<u64>,
     /// Set the maximum download speed.

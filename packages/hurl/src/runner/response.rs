@@ -15,6 +15,8 @@
  * limitations under the License.
  *
  */
+use std::path::PathBuf;
+
 use hurl_core::ast::{Base64, Body, Bytes, Hex, Response, SourceInfo, StatusValue};
 
 use crate::http;
@@ -71,6 +73,7 @@ pub fn eval_asserts(
     http_responses: &[&http::Response],
     cache: &mut BodyCache,
     context_dir: &ContextDir,
+    jsfilter_path: &Option<PathBuf>,
 ) -> Vec<AssertResult> {
     let mut asserts = vec![];
     let last_response = http_responses.last().unwrap();
@@ -157,7 +160,7 @@ pub fn eval_asserts(
     // Then, checks all the explicit asserts.
     for assert in response.asserts() {
         let assert_result =
-            assert::eval_explicit_assert(assert, variables, http_responses, cache, context_dir);
+            assert::eval_explicit_assert(assert, variables, http_responses, cache, context_dir, jsfilter_path);
         asserts.push(assert_result);
     }
     asserts
@@ -362,10 +365,11 @@ pub fn eval_captures(
     http_responses: &[&http::Response],
     cache: &mut BodyCache,
     variables: &mut VariableSet,
+    jsfilter_path: &Option<PathBuf>,
 ) -> Result<Vec<CaptureResult>, RunnerError> {
     let mut captures = vec![];
     for capture in response.captures() {
-        let capture_result = capture::eval_capture(capture, variables, http_responses, cache)?;
+        let capture_result = capture::eval_capture(capture, variables, http_responses, cache, jsfilter_path)?;
         // Update variables now so the captures set is ready in case
         // the next captures reference this new variable.
         let name = capture_result.name.clone();
@@ -461,6 +465,7 @@ mod tests {
                 &[&http::xml_two_users_http_response()],
                 &mut cache,
                 &context_dir,
+                &None,
             ),
             vec![AssertResult::Explicit {
                 actual: Ok(Some(Value::Number(Number::Integer(2)))),
@@ -508,6 +513,7 @@ mod tests {
                 &[&http::xml_two_users_http_response()],
                 &mut cache,
                 &mut variables,
+                &None,
             )
             .unwrap(),
             vec![CaptureResult {

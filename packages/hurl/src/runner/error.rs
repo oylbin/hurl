@@ -95,6 +95,16 @@ pub enum RunnerErrorKind {
     FilterInvalidInput(String),
     FilterInvalidFormatSpecifier(String),
     FilterMissingInput,
+    /// jsfilter used but no --jsfilter file specified
+    JsFilterNotConfigured,
+    /// JavaScript filter function not found
+    JsFilterFunctionNotFound {
+        name: String,
+    },
+    /// JavaScript runtime error
+    JsFilterRuntimeError {
+        message: String,
+    },
     Http(HttpError),
     InvalidJson {
         value: String,
@@ -154,6 +164,9 @@ impl DisplaySourceError for RunnerError {
             RunnerErrorKind::FilterInvalidInput { .. } => "Filter error".to_string(),
             RunnerErrorKind::FilterInvalidFormatSpecifier { .. } => "Filter error".to_string(),
             RunnerErrorKind::FilterMissingInput => "Filter error".to_string(),
+            RunnerErrorKind::JsFilterNotConfigured => "JavaScript filter error".to_string(),
+            RunnerErrorKind::JsFilterFunctionNotFound { .. } => "JavaScript filter error".to_string(),
+            RunnerErrorKind::JsFilterRuntimeError { .. } => "JavaScript filter error".to_string(),
             RunnerErrorKind::Http(http_error) => http_error.description(),
             RunnerErrorKind::InvalidJson { .. } => "Invalid JSON".to_string(),
             RunnerErrorKind::InvalidRegex => "Invalid regex".to_string(),
@@ -266,6 +279,21 @@ impl DisplaySourceError for RunnerError {
             }
             RunnerErrorKind::FilterMissingInput => {
                 let message = "missing value to apply filter";
+                let message = error::add_carets(message, self.source_info, content);
+                color_red_multiline_string(&message)
+            }
+            RunnerErrorKind::JsFilterNotConfigured => {
+                let message = "JavaScript filter requires --jsfilter option";
+                let message = error::add_carets(message, self.source_info, content);
+                color_red_multiline_string(&message)
+            }
+            RunnerErrorKind::JsFilterFunctionNotFound { name } => {
+                let message = &format!("JavaScript filter function 'filter_{name}' not found");
+                let message = error::add_carets(message, self.source_info, content);
+                color_red_multiline_string(&message)
+            }
+            RunnerErrorKind::JsFilterRuntimeError { message: msg } => {
+                let message = &format!("JavaScript runtime error: {msg}");
                 let message = error::add_carets(message, self.source_info, content);
                 color_red_multiline_string(&message)
             }

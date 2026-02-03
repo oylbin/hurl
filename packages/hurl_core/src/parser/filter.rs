@@ -15,7 +15,8 @@
  * limitations under the License.
  *
  */
-use crate::ast::{Filter, FilterValue, IntegerValue, NumberValue, SourceInfo, Whitespace};
+use crate::ast::{Filter, FilterValue, IntegerValue, NumberValue, SourceInfo, Template, TemplateElement, Whitespace};
+use crate::types::ToSource;
 use crate::combinator::{choice, ParseError as ParseErrorTrait};
 use crate::parser::number::{integer, number};
 use crate::parser::primitives::{one_or_more_spaces, try_literal, zero_or_more_spaces};
@@ -68,6 +69,7 @@ pub fn filter(reader: &mut Reader) -> ParseResult<Filter> {
             html_decode_filter,
             html_encode_filter,
             jsonpath_filter,
+            jsfilter_filter,
             last_filter,
             location_filter,
             nth_filter,
@@ -207,6 +209,158 @@ fn jsonpath_filter(reader: &mut Reader) -> ParseResult<FilterValue> {
     let space0 = one_or_more_spaces(reader)?;
     let expr = quoted_template(reader).map_err(|e| e.to_non_recoverable())?;
     Ok(FilterValue::JsonPath { space0, expr })
+}
+
+fn jsfilter_filter(reader: &mut Reader) -> ParseResult<FilterValue> {
+    try_literal("jsfilter", reader)?;
+    let space0 = one_or_more_spaces(reader)?;
+    // Parse the filter function name as unquoted template
+    let name = jsfilter_name(reader).map_err(|e| e.to_non_recoverable())?;
+    // Parse optional arguments (templates/placeholders)
+    let mut args = Vec::new();
+    loop {
+        let save = reader.cursor();
+        match one_or_more_spaces(reader) {
+            Ok(space) => {
+                // Try to parse an argument (placeholder or quoted template)
+                match jsfilter_arg(reader) {
+                    Ok(arg) => args.push((space, arg)),
+                    Err(e) => {
+                        if e.recoverable {
+                            reader.seek(save);
+                            break;
+                        } else {
+                            return Err(e);
+                        }
+                    }
+                }
+            }
+            Err(_) => break,
+        }
+    }
+    Ok(FilterValue::JsFilter { space0, name, args })
+}
+
+/// Parses an unquoted filter name (identifier: alphanumeric and underscore).
+fn jsfilter_name(reader: &mut Reader) -> ParseResult<Template> {
+    let start = reader.cursor();
+    let mut name = String::new();
+
+    // First character must be alphabetic or underscore
+    if let Some(c) = reader.peek() {
+        if c.is_ascii_alphabetic() || c == '_' {
+            name.push(c);
+            reader.read();
+        } else {
+            let kind = ParseErrorKind::Expecting {
+                value: "filter name".to_string(),
+            };
+            return Err(ParseError::new(start.pos, true, kind));
+        }
+    } else {
+        let kind = ParseErrorKind::Expecting {
+            value: "filter name".to_string(),
+        };
+        return Err(ParseError::new(start.pos, true, kind));
+    }
+
+    // Rest can be alphanumeric or underscore
+    while let Some(c) = reader.peek() {
+        if c.is_ascii_alphanumeric() || c == '_' {
+            name.push(c);
+            reader.read();
+        } else {
+            break;
+        }
+    }
+
+    let end = reader.cursor();
+    let source_info = SourceInfo {
+        start: start.pos,
+        end: end.pos,
+    };
+    let element = TemplateElement::String {
+        value: name.clone(),
+        source: name.to_source(),
+    };
+    Ok(Template {
+        delimiter: None,
+        elements: vec![element],
+        source_info,
+    })
+}
+
+/// Parses a jsfilter argument: either a placeholder {{var}} or a quoted string.
+fn jsfilter_arg(reader: &mut Reader) -> ParseResult<Template> {
+    let start = reader.cursor();
+    // Try placeholder first
+    if let Some('{') = reader.peek() {
+        reader.seek(start);
+        let placeholder = placeholder::parse(reader)?;
+        let end = reader.cursor();
+        let source_info = SourceInfo {
+            start: start.pos,
+            end: end.pos,
+        };
+        let element = TemplateElement::Placeholder(placeholder);
+        return Ok(Template {
+            delimiter: None,
+            elements: vec![element],
+            source_info,
+        });
+    }
+    // Try quoted template
+    if let Some('"') = reader.peek() {
+        reader.seek(start);
+        return quoted_template(reader);
+    }
+    // Try number literal
+    if let Some(c) = reader.peek() {
+        if c.is_ascii_digit() || c == '-' {
+            reader.seek(start);
+            let num_start = reader.cursor();
+            let mut num_str = String::new();
+            // Optional negative sign
+            if let Some('-') = reader.peek() {
+                num_str.push('-');
+                reader.read();
+            }
+            // Digits
+            while let Some(c) = reader.peek() {
+                if c.is_ascii_digit() || c == '.' {
+                    num_str.push(c);
+                    reader.read();
+                } else {
+                    break;
+                }
+            }
+            if num_str.is_empty() || num_str == "-" {
+                let kind = ParseErrorKind::Expecting {
+                    value: "argument".to_string(),
+                };
+                return Err(ParseError::new(start.pos, true, kind));
+            }
+            let end = reader.cursor();
+            let source_info = SourceInfo {
+                start: num_start.pos,
+                end: end.pos,
+            };
+            let element = TemplateElement::String {
+                value: num_str.clone(),
+                source: num_str.to_source(),
+            };
+            return Ok(Template {
+                delimiter: None,
+                elements: vec![element],
+                source_info,
+            });
+        }
+    }
+    // Not a valid argument
+    let kind = ParseErrorKind::Expecting {
+        value: "argument".to_string(),
+    };
+    Err(ParseError::new(start.pos, true, kind))
 }
 
 fn last_filter(reader: &mut Reader) -> ParseResult<FilterValue> {

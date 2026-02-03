@@ -15,6 +15,8 @@
  * limitations under the License.
  *
  */
+use std::path::PathBuf;
+
 use hurl_core::ast::{Filter, FilterValue};
 
 use crate::runner::filter::add::eval_add;
@@ -31,6 +33,7 @@ use crate::runner::filter::format::eval_date_format;
 use crate::runner::filter::html_escape::eval_html_escape;
 use crate::runner::filter::html_unescape::eval_html_unescape;
 use crate::runner::filter::jsonpath::eval_jsonpath;
+use crate::runner::filter::jsfilter::eval_jsfilter;
 use crate::runner::filter::last::eval_last;
 use crate::runner::filter::location::eval_location;
 use crate::runner::filter::nth::eval_nth;
@@ -53,16 +56,29 @@ use crate::runner::{RunnerError, RunnerErrorKind, Value, VariableSet};
 
 /// Apply successive `filter` to an input `value`.
 /// Specify whether they are executed  `in_assert` or not.
+#[allow(dead_code)]
 pub fn eval_filters(
     filters: &[&Filter],
     value: &Value,
     variables: &VariableSet,
     in_assert: bool,
 ) -> Result<Option<Value>, RunnerError> {
+    eval_filters_with_js(filters, value, variables, &None, in_assert)
+}
+
+/// Apply successive `filter` to an input `value` with optional JavaScript filter path.
+/// Specify whether they are executed  `in_assert` or not.
+pub fn eval_filters_with_js(
+    filters: &[&Filter],
+    value: &Value,
+    variables: &VariableSet,
+    jsfilter_path: &Option<PathBuf>,
+    in_assert: bool,
+) -> Result<Option<Value>, RunnerError> {
     let mut value = Some(value.clone());
     for filter in filters {
         value = if let Some(value) = value {
-            eval_filter(filter, &value, variables, in_assert)?
+            eval_filter_with_js(filter, &value, variables, jsfilter_path, in_assert)?
         } else {
             return Err(RunnerError::new(
                 filter.source_info,
@@ -75,10 +91,22 @@ pub fn eval_filters(
 }
 
 /// Evaluates a `filter` with an input `value`, given a set of `variables`.
+#[allow(dead_code)]
 pub fn eval_filter(
     filter: &Filter,
     value: &Value,
     variables: &VariableSet,
+    in_assert: bool,
+) -> Result<Option<Value>, RunnerError> {
+    eval_filter_with_js(filter, value, variables, &None, in_assert)
+}
+
+/// Evaluates a `filter` with an input `value`, given a set of `variables` and optional JavaScript filter path.
+pub fn eval_filter_with_js(
+    filter: &Filter,
+    value: &Value,
+    variables: &VariableSet,
+    jsfilter_path: &Option<PathBuf>,
     in_assert: bool,
 ) -> Result<Option<Value>, RunnerError> {
     let source_info = filter.source_info;
@@ -111,6 +139,9 @@ pub fn eval_filter(
         FilterValue::HtmlUnescape => eval_html_unescape(value, source_info, in_assert),
         FilterValue::JsonPath { expr, .. } => {
             eval_jsonpath(value, expr, variables, source_info, in_assert)
+        }
+        FilterValue::JsFilter { name, args, .. } => {
+            eval_jsfilter(value, name, args, variables, jsfilter_path, source_info, in_assert)
         }
         FilterValue::Last => eval_last(value, source_info, in_assert),
         FilterValue::Location => eval_location(value, source_info, in_assert),

@@ -42,6 +42,7 @@ xml-rs = { version = "0.8.28" }
 uuid = { version = "1.20.0", features = ["v4" , "fast-rng"] }
 similar = "2.7.0"
 terminal_size = "0.4.3"
+boa_engine = { version = "0.20", features = ["annex-b"] }
 
 [target.'cfg(windows)'.build-dependencies]
 winres = "0.1.12"

@@ -304,6 +304,11 @@ pub enum FilterValue {
         space0: Whitespace,
         expr: Template,
     },
+    JsFilter {
+        space0: Whitespace,
+        name: Template,
+        args: Vec<(Whitespace, Template)>,
+    },
     Last,
     Location,
     Nth {
@@ -371,6 +376,7 @@ impl FilterValue {
             FilterValue::HtmlEscape => "htmlEscape",
             FilterValue::HtmlUnescape => "htmlUnescape",
             FilterValue::JsonPath { .. } => "jsonpath",
+            FilterValue::JsFilter { .. } => "jsfilter",
             FilterValue::Last => "last",
             FilterValue::Location => "location",
             FilterValue::Nth { .. } => "nth",

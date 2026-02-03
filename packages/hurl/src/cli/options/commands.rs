@@ -316,6 +316,15 @@ pub fn json() -> clap::Arg {
         .action(clap::ArgAction::SetTrue)
 }
 
+pub fn jsfilter() -> clap::Arg {
+    clap::Arg::new("jsfilter")
+        .long("jsfilter")
+        .value_name("FILE")
+        .help("Load JavaScript file containing custom filter functions")
+        .help_heading("Run options")
+        .num_args(1)
+}
+
 pub fn limit_rate() -> clap::Arg {
     clap::Arg::new("limit_rate")
         .long("limit-rate")

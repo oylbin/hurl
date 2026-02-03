@@ -384,6 +384,26 @@ pub fn jobs(arg_matches: &ArgMatches, default_value: Option<usize>) -> Option<us
         .or(default_value)
 }
 
+pub fn jsfilter(
+    arg_matches: &ArgMatches,
+    default_value: Option<PathBuf>,
+) -> Result<Option<PathBuf>, CliOptionsError> {
+    match get::<String>(arg_matches, "jsfilter") {
+        None => Ok(default_value),
+        Some(filename) => {
+            let path = Path::new(&filename);
+            if path.exists() && path.is_file() {
+                Ok(Some(path.to_path_buf()))
+            } else {
+                Err(CliOptionsError::Error(format!(
+                    "JavaScript filter file {} does not exist",
+                    path.display()
+                )))
+            }
+        }
+    }
+}
+
 pub fn json_report_dir(
     arg_matches: &ArgMatches,
     default_value: Option<PathBuf>,
